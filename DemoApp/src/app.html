@@ -1,0 +1,27 @@
+    
+<template>
+<require from="VisitorList/list"></require>
+
+ <require from="bootstrap/css/bootstrap.css"></require>
+ <nav class="navbar navbar-inverse">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="#">WebSiteName</a>
+    </div>
+    <ul class="nav navbar-nav">
+     <li repeat.for="r of router.navigation">
+     <a href.bind="r.href">${r.title}</a></li>
+     
+    </ul>
+
+   
+  </div>
+</nav>
+ 
+  <compose class="col-md-6" view-model="VisitorList/list"></compose>
+      <router-view class=" col-md-6"></router-view>
+    
+  
+</template>
+
+  

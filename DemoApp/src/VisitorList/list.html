@@ -1,0 +1,34 @@
+<template>
+
+<a route-href="route:create" class="btn btn-danger">CREATE</a>
+
+<table class="table">
+<tr>
+
+<th>FIRSTNAME</th>
+<th>LASTNAME</th>
+<th>DATE</th>
+<th>TIME</th>
+<th></th>
+<th></th>
+
+</tr>
+
+<tr repeat.for="m of visitorlist">
+
+<td>${m.firstname}</td>
+<td>${m.lastname}</td>
+<td>${m.date}</td>
+<td>${m.time}</td>
+<td> <a  route-href="route:edit;params.bind:{id:m.id}" class="btn btn-primary">EDIT</a></td>
+<td> <button click.trigger="delete(m.id)" class="btn btn-primary">DELETE</button></td>
+
+
+
+</tr>
+
+</table>
+
+
+</template>
+ 
