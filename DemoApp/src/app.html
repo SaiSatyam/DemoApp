@@ -1,27 +1,16 @@
     
 <template>
-<require from="VisitorList/list"></require>
 
- <require from="bootstrap/css/bootstrap.css"></require>
- <nav class="navbar navbar-inverse">
-  <div class="container-fluid">
-    <div class="navbar-header">
-      <a class="navbar-brand" href="#">WebSiteName</a>
-    </div>
-    <ul class="nav navbar-nav">
-     <li repeat.for="r of router.navigation">
-     <a href.bind="r.href">${r.title}</a></li>
-     
-    </ul>
-
-   
-  </div>
-</nav>
+ <require from="resources/elements/navbar.html"></require>
  
-  <compose class="col-md-6" view-model="VisitorList/list"></compose>
-      <router-view class=" col-md-6"></router-view>
-    
-  
+<navbar router.bind="router"></navbar>
+
+<loading-indicator loading.bind="router.isNavigating "></loading-indicator>
+
+       <router-view  > </router-view> 
+      
+
+      
 </template>
 
   

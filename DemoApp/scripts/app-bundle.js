@@ -11,11 +11,9 @@ define('app',["require", "exports", "aurelia-router", "aurelia-framework"], func
         function App() {
         }
         App.prototype.configureRouter = function (config, router) {
-            config.title = 'Contacts';
-            config.map([{ route: ['', 'ns'], moduleId: 'ns', title: 'Select', nav: true },
-                { route: 'detail/:id', moduleId: 'VisitorDetails/Editdetail', name: 'edit' },
-                { route: 'delete/:id', moduleId: 'VisitorDetails/Deletedetail', name: 'delete' },
-                { route: 'create', moduleId: 'VisitorDetails/Createdetail', name: 'create' },
+            config.title = 'Visitors';
+            config.map([{ route: ['', 'list'], moduleId: 'VisitorList/list', nav: true, title: 'VISITORLIST' },
+                { route: 'Other', moduleId: 'Others/other', nav: true, title: 'Other' }
             ]);
             this.router = router;
         };
@@ -36,6 +34,11 @@ define('environment',["require", "exports"], function (require, exports) {
     };
 });
 
+define('Interface',["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+});
+
 define('main',["require", "exports", "./environment"], function (require, exports, environment_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -47,7 +50,8 @@ define('main',["require", "exports", "./environment"], function (require, export
     function configure(aurelia) {
         aurelia.use
             .standardConfiguration()
-            .feature('resources').plugin('aurelia-http-client').plugin('aurelia-validation');
+            .feature('resources').plugin('aurelia-http-client').plugin('aurelia-validation')
+            .plugin('jquery-ui').plugin('moment').plugin('nprogress');
         if (environment_1.default.debug) {
             aurelia.use.developmentLogging();
         }
@@ -71,13 +75,6 @@ define('message',["require", "exports"], function (require, exports) {
         return VisitorUpdated;
     }());
     exports.VisitorUpdated = VisitorUpdated;
-    var VisitorCreated = (function () {
-        function VisitorCreated(visitor) {
-            this.visitor = visitor;
-        }
-        return VisitorCreated;
-    }());
-    exports.VisitorCreated = VisitorCreated;
     var VisitorDeleted = (function () {
         function VisitorDeleted(visitor) {
             this.visitor = visitor;
@@ -87,17 +84,6 @@ define('message',["require", "exports"], function (require, exports) {
     exports.VisitorDeleted = VisitorDeleted;
 });
 
-define('ns',["require", "exports"], function (require, exports) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    var selection = (function () {
-        function selection() {
-        }
-        return selection;
-    }());
-    exports.selection = selection;
-});
-
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -107,31 +93,14 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-define('WebApi',["require", "exports", "aurelia-http-client", "aurelia-framework"], function (require, exports, aurelia_http_client_1, aurelia_framework_1) {
+define('WebApi',["require", "exports", "aurelia-http-client", "aurelia-framework", "./resources/value-converters/converter"], function (require, exports, aurelia_http_client_1, aurelia_framework_1, converter_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var latency = 200;
-    function getid(obj) {
-        var a = 0;
-        for (var prop in obj) {
-            if (obj.hasOwnProperty(prop)) {
-                a = obj[prop].id;
-            }
-        }
-        return a + 1;
-    }
-    function formatDate(date) {
-        var d = new Date(date), month = '' + (d.getMonth() + 1), day = '' + d.getDate(), year = d.getFullYear();
-        if (month.length < 2)
-            month = '0' + month;
-        if (day.length < 2)
-            day = '0' + day;
-        return [year, month, day].join('-');
-    }
     var baseurl = "http://10.16.26.59:106/api/values";
     var web = (function () {
-        function web(http) {
-            this.isRequesting = false;
+        function web(http, d) {
+            this.d = d;
             this.http = http;
             this.fetchVisitorsDetails();
         }
@@ -139,9 +108,17 @@ define('WebApi',["require", "exports", "aurelia-http-client", "aurelia-framework
             var _this = this;
             this.http.get(baseurl).then(function (data) { return _this.visitorlist = JSON.parse(data.response); });
         };
+        web.prototype.getid = function (obj) {
+            var a = 0;
+            for (var prop in obj) {
+                if (obj.hasOwnProperty(prop)) {
+                    a = obj[prop].id;
+                }
+            }
+            return a + 1;
+        };
         web.prototype.getvisitor = function () {
             var _this = this;
-            this.isRequesting = true;
             return new Promise(function (resolve) {
                 setTimeout(function () {
                     var results = _this.visitorlist.map(function (x) {
@@ -149,27 +126,24 @@ define('WebApi',["require", "exports", "aurelia-http-client", "aurelia-framework
                             id: x.id,
                             firstname: x.firstname,
                             lastname: x.lastname,
-                            date: formatDate(x.date),
+                            date: _this.d.toView(x.date),
                             time: x.time
                         };
                     });
                     resolve(results);
-                    _this.isRequesting = false;
+                    Object.assign(_this.visitorlist, results);
                 }, latency);
             });
         };
         web.prototype.getvisitorbyid = function (id) {
             var _this = this;
-            this.isRequesting = true;
             return new Promise(function (resolve) {
                 var res = _this.visitorlist.filter(function (x) { return id == x.id; })[0];
                 resolve(res);
-                _this.isRequesting = false;
             });
         };
         web.prototype.savedetail = function (visitor) {
             var _this = this;
-            this.isRequesting = true;
             return new Promise(function (resolve) {
                 var instance = JSON.parse(JSON.stringify(visitor));
                 var found = _this.visitorlist.filter(function (x) { return x.id == visitor.id; })[0];
@@ -178,252 +152,46 @@ define('WebApi',["require", "exports", "aurelia-http-client", "aurelia-framework
                     _this.visitorlist[index] = instance;
                 }
                 else {
-                    instance.id = getid(_this.visitorlist);
+                    instance.id = _this.getid(_this.visitorlist);
                     _this.visitorlist.push(instance);
                 }
                 resolve(instance);
-                _this.isRequesting = false;
             });
         };
         web.prototype.deletebyid = function (id) {
             var _this = this;
-            this.isRequesting = true;
             return new Promise(function (resolve) {
                 var found = _this.visitorlist.filter(function (x) { return id == x.id; })[0];
                 var index = _this.visitorlist.indexOf(found);
                 _this.visitorlist.splice(index, 1);
                 resolve(_this.visitorlist);
-                _this.isRequesting = false;
             });
         };
         return web;
     }());
     web = __decorate([
-        aurelia_framework_1.inject(aurelia_http_client_1.HttpClient),
-        __metadata("design:paramtypes", [aurelia_http_client_1.HttpClient])
+        aurelia_framework_1.inject(aurelia_http_client_1.HttpClient, converter_1.DateFormatValueConverter),
+        __metadata("design:paramtypes", [aurelia_http_client_1.HttpClient, Object])
     ], web);
     exports.web = web;
 });
 
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-define('VisitorDetails/Createdetail',["require", "exports", "../WebApi", "aurelia-framework", "aurelia-event-aggregator", "../message", "aurelia-validation"], function (require, exports, WebApi_1, aurelia_framework_1, aurelia_event_aggregator_1, message_1, aurelia_validation_1) {
+define('Others/other',["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    var createdetail = (function () {
-        function createdetail(web, ea, controller) {
-            var _this = this;
-            this.ea = ea;
-            this.controller = controller;
-            this.a = true;
-            this.web = web;
-            ea.subscribe(message_1.VisitorDeleted, function (msg) {
-                _this.a = false;
-            });
-            this.a = true;
+    var other = (function () {
+        function other() {
         }
-        createdetail.prototype.validateMe = function () {
-            var _this = this;
-            this.controller.validate().then(function (result) {
-                if (result.valid) {
-                    _this.web.savedetail(_this.vlist).then(function (data) {
-                        _this.vlist = JSON.parse(JSON.stringify(data));
-                        _this.ea.publish(new message_1.VisitorCreated(_this.vlist));
-                        _this.a = false;
-                    });
-                }
-                else {
-                    _this.msg = "u have errors";
-                }
-            });
-        };
-        createdetail.prototype.save = function () {
-            aurelia_validation_1.ValidationRules
-                .ensure('firstname').required()
-                .ensure('lastname').maxLength(6).required()
-                .ensure('date').required()
-                .ensure('time').required()
-                .on(this.vlist);
-            this.validateMe();
-        };
-        return createdetail;
+        return other;
     }());
-    createdetail = __decorate([
-        aurelia_framework_1.inject(WebApi_1.web, aurelia_event_aggregator_1.EventAggregator, aurelia_validation_1.ValidationController),
-        __metadata("design:paramtypes", [Object, Object, Object])
-    ], createdetail);
-    exports.createdetail = createdetail;
-});
-
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-define('VisitorDetails/Editdetail',["require", "exports", "../WebApi", "aurelia-framework", "aurelia-event-aggregator", "../message", "aurelia-validation", "./utility"], function (require, exports, WebApi_1, aurelia_framework_1, aurelia_event_aggregator_1, message_1, aurelia_validation_1, utility_1) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    function getid(obj, a) {
-        var flag = 0;
-        for (var prop in obj) {
-            if (obj.hasOwnProperty(prop)) {
-                if (a != obj[prop].id) {
-                    flag++;
-                }
-                else {
-                    flag = -1;
-                    break;
-                }
-            }
-        }
-        return flag;
-    }
-    var detail = (function () {
-        function detail(web, ea, controller) {
-            var _this = this;
-            this.ea = ea;
-            this.controller = controller;
-            this.count = 0;
-            this.a = true;
-            this.dfd = 1;
-            this.web = web;
-            controller.validateTrigger = aurelia_validation_1.validateTrigger.change;
-            ea.subscribe(message_1.VisitorDeleted, function (msg) {
-                _this.dfd = getid(msg.visitor, _this.vlist.id);
-                if (_this.dfd >= 0) {
-                    _this.a = false;
-                }
-            });
-            this.ea.subscribe(message_1.VisitorUpdated, function (msg) {
-                Object.assign(_this.originallist, msg.visitor);
-            });
-        }
-        detail.prototype.activate = function (param) {
-            var _this = this;
-            this.controller.reset();
-            this.a = true;
-            this.web.getvisitorbyid(param.id).then(function (data) {
-                _this.vlist = JSON.parse(JSON.stringify(data));
-                _this.originallist = JSON.parse(JSON.stringify(_this.vlist));
-                aurelia_validation_1.ValidationRules
-                    .ensure('firstname').required()
-                    .ensure('lastname').required()
-                    .ensure('date').required()
-                    .on(_this.vlist);
-            });
-        };
-        detail.prototype.canDeactivate = function () {
-            if (this.dfd > 0) {
-                if (!utility_1.areEqual(this.originallist, this.vlist)) {
-                    return confirm('You have unsaved changes. Are you sure you wish to leave?');
-                }
-            }
-            return true;
-        };
-        detail.prototype.validateMe = function () {
-            var _this = this;
-            this.controller.validate().then(function (result) {
-                if (result.valid) {
-                    _this.save();
-                }
-                else {
-                    _this.msg = "u have errors";
-                }
-            });
-        };
-        detail.prototype.save = function () {
-            var _this = this;
-            this.web.savedetail(this.vlist).then(function (data) {
-                _this.vlist = JSON.parse(JSON.stringify(data));
-                _this.ea.publish(new message_1.VisitorUpdated(_this.vlist));
-                aurelia_validation_1.ValidationRules
-                    .ensure('firstname').required()
-                    .ensure('lastname').required()
-                    .ensure('date').required()
-                    .on(_this.vlist);
-            });
-        };
-        return detail;
-    }());
-    detail = __decorate([
-        aurelia_framework_1.inject(WebApi_1.web, aurelia_event_aggregator_1.EventAggregator, aurelia_validation_1.ValidationController),
-        __metadata("design:paramtypes", [Object, Object, Object])
-    ], detail);
-    exports.detail = detail;
-});
-
-define('VisitorDetails/utility',["require", "exports"], function (require, exports) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    function areEqual(obj1, obj2) {
-        return Object.keys(obj1).every(function (ke) { return obj2.hasOwnProperty(ke) && (obj1[ke] === obj2[ke]); });
-    }
-    exports.areEqual = areEqual;
-    ;
-});
-
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-define('VisitorList/list',["require", "exports", "../WebApi", "aurelia-framework", "aurelia-event-aggregator", "../message"], function (require, exports, WebApi_1, aurelia_framework_1, aurelia_event_aggregator_1, message_1) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    var list = (function () {
-        function list(web, ea) {
-            var _this = this;
-            this.web = web;
-            this.ea = ea;
-            ea.subscribe(message_1.VisitorUpdated, function (msg) {
-                var id = msg.visitor.id;
-                var found = _this.visitorlist.find(function (x) { return x.id == id; });
-                Object.assign(found, msg.visitor);
-            });
-            ea.subscribe(message_1.VisitorCreated, function (msg) {
-                var sai = JSON.parse(JSON.stringify(msg));
-                _this.visitorlist.push(sai.visitor);
-            });
-        }
-        list.prototype.created = function () {
-            var _this = this;
-            this.web.getvisitor().then(function (data) { return _this.visitorlist = JSON.parse(JSON.stringify(data)); });
-        };
-        list.prototype.delete = function (param) {
-            var _this = this;
-            this.web.deletebyid(param).then(function (data) {
-                _this.visitorlist = JSON.parse(JSON.stringify(data));
-                _this.ea.publish(new message_1.VisitorDeleted(_this.visitorlist));
-            });
-        };
-        return list;
-    }());
-    list = __decorate([
-        aurelia_framework_1.inject(WebApi_1.web, aurelia_event_aggregator_1.EventAggregator),
-        __metadata("design:paramtypes", [WebApi_1.web, Object])
-    ], list);
-    exports.list = list;
+    exports.other = other;
 });
 
 define('resources/index',["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     function configure(config) {
+        config.globalResources(['./elements/loading-indicator']);
     }
     exports.configure = configure;
 });
@@ -437,22 +205,243 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-define('resources/attributes/date-picker',["require", "exports", "aurelia-framework"], function (require, exports, aurelia_framework_1) {
+define('VisitorList/list',["require", "exports", "../WebApi", "aurelia-framework", "aurelia-event-aggregator", "../message", "aurelia-validation"], function (require, exports, WebApi_1, aurelia_framework_1, aurelia_event_aggregator_1, message_1, aurelia_validation_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    var DatePickerCustomAttribute = (function () {
-        function DatePickerCustomAttribute(element) {
+    var list = (function () {
+        function list(web, ea, controller) {
+            var _this = this;
+            this.web = web;
+            this.ea = ea;
+            this.controller = controller;
+            this.isedit = false;
+            this.iscreate = false;
+            ea.subscribe(message_1.VisitorUpdated, function (msg) {
+                var id = msg.visitor.id;
+                var found = _this.visitorlist.find(function (x) { return x.id == id; });
+                if (found) {
+                    Object.assign(found, msg.visitor);
+                }
+                else {
+                    _this.visitorlist.push(msg.visitor);
+                }
+            });
+        }
+        list.prototype.created = function () {
+            var _this = this;
+            this.web.getvisitor().then(function (data) { return _this.visitorlist = JSON.parse(JSON.stringify(data)); });
+        };
+        list.prototype.delete = function (param) {
+            var _this = this;
+            this.web.deletebyid(param).then(function (data) {
+                _this.visitorlist = JSON.parse(JSON.stringify(data));
+                _this.ea.publish(new message_1.VisitorDeleted(_this.visitorlist));
+            });
+        };
+        list.prototype.edit = function (visitorid) {
+            var _this = this;
+            this.isedit = true;
+            this.FormEnabled = true;
+            this.controller.reset();
+            this.web.getvisitorbyid(visitorid).then(function (data) {
+                _this.visitor = JSON.parse(JSON.stringify(data));
+                aurelia_validation_1.ValidationRules
+                    .ensure('firstname').required()
+                    .ensure('lastname').required()
+                    .ensure('date').required()
+                    .on(_this.visitor);
+            });
+        };
+        list.prototype.create = function () {
+            this.FormEnabled = true;
+            this.iscreate = true;
+            this.visitor = null;
+        };
+        return list;
+    }());
+    list = __decorate([
+        aurelia_framework_1.inject(WebApi_1.web, aurelia_event_aggregator_1.EventAggregator, aurelia_validation_1.ValidationController),
+        __metadata("design:paramtypes", [WebApi_1.web, Object, Object])
+    ], list);
+    exports.list = list;
+});
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+define('VisitorDetails/Updatedetail',["require", "exports", "../WebApi", "aurelia-framework", "aurelia-event-aggregator", "../message", "aurelia-validation", "aurelia-framework"], function (require, exports, WebApi_1, aurelia_framework_1, aurelia_event_aggregator_1, message_1, aurelia_validation_1, aurelia_framework_2) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    var detail = (function () {
+        function detail(web, ea, controller) {
+            var _this = this;
+            this.web = web;
+            this.ea = ea;
+            this.controller = controller;
+            this.countofID = 0;
+            controller.validateTrigger = aurelia_validation_1.validateTrigger.change;
+            ea.subscribe(message_1.VisitorDeleted, function (msg) {
+                _this.countofID = _this.getid(msg.visitor, _this.vlist.id);
+                if (_this.countofID >= 0) {
+                    _this.formenabled = false;
+                }
+            });
+        }
+        detail.prototype.getid = function (visitorobj, visitorid) {
+            var flag = 0;
+            for (var prop in visitorobj) {
+                if (visitorobj.hasOwnProperty(prop)) {
+                    if (visitorid != visitorobj[prop].id) {
+                        flag++;
+                    }
+                    else {
+                        flag = -1;
+                        break;
+                    }
+                }
+            }
+            return flag;
+        };
+        detail.prototype.validateMe = function () {
+            var _this = this;
+            aurelia_validation_1.ValidationRules
+                .ensure('firstname').required()
+                .ensure('lastname').required()
+                .ensure('date').required()
+                .ensure('time').required()
+                .on(this.vlist);
+            this.controller.validate().then(function (result) {
+                if (result.valid) {
+                    _this.save();
+                }
+            });
+        };
+        detail.prototype.save = function () {
+            var _this = this;
+            this.web.savedetail(this.vlist).then(function (data) {
+                _this.vlist = JSON.parse(JSON.stringify(data));
+                _this.ea.publish(new message_1.VisitorUpdated(_this.vlist));
+                _this.formenabled = false;
+                aurelia_validation_1.ValidationRules
+                    .ensure('firstname').required()
+                    .ensure('lastname').required()
+                    .ensure('date').required()
+                    .on(_this.vlist);
+            });
+        };
+        return detail;
+    }());
+    __decorate([
+        aurelia_framework_2.bindable({ defaultBindingMode: aurelia_framework_2.bindingMode.twoWay }),
+        __metadata("design:type", Object)
+    ], detail.prototype, "vlist", void 0);
+    __decorate([
+        aurelia_framework_2.bindable({ defaultBindingMode: aurelia_framework_2.bindingMode.twoWay }),
+        __metadata("design:type", Object)
+    ], detail.prototype, "formenabled", void 0);
+    detail = __decorate([
+        aurelia_framework_1.inject(WebApi_1.web, aurelia_event_aggregator_1.EventAggregator, aurelia_validation_1.ValidationController),
+        __metadata("design:paramtypes", [WebApi_1.web, aurelia_event_aggregator_1.EventAggregator, aurelia_validation_1.ValidationController])
+    ], detail);
+    exports.detail = detail;
+});
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+define('resources/attributes/datepicker',["require", "exports", "aurelia-framework", "jquery"], function (require, exports, aurelia_framework_1, $) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    var DatepickerCustomAttribute = (function () {
+        function DatepickerCustomAttribute(element) {
             this.element = element;
         }
-        DatePickerCustomAttribute.prototype.valueChanged = function (newValue, oldValue) {
+        DatepickerCustomAttribute.prototype.attached = function () {
+            $(this.element).datepicker()
+                .on('change', function (e) { return fireEvent(e.target, 'input'); });
         };
-        return DatePickerCustomAttribute;
+        DatepickerCustomAttribute.prototype.detached = function () {
+            $(this.element).datepicker('destroy')
+                .off('change');
+        };
+        return DatepickerCustomAttribute;
     }());
-    DatePickerCustomAttribute = __decorate([
+    DatepickerCustomAttribute = __decorate([
         aurelia_framework_1.autoinject(),
         __metadata("design:paramtypes", [Element])
-    ], DatePickerCustomAttribute);
-    exports.DatePickerCustomAttribute = DatePickerCustomAttribute;
+    ], DatepickerCustomAttribute);
+    exports.DatepickerCustomAttribute = DatepickerCustomAttribute;
+    function createEvent(name) {
+        var event = document.createEvent('Event');
+        event.initEvent(name, true, true);
+        return event;
+    }
+    function fireEvent(element, name) {
+        var event = createEvent(name);
+        element.dispatchEvent(event);
+    }
+});
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+define('resources/elements/loading-indicator',["require", "exports", "nprogress", "aurelia-framework"], function (require, exports, nprogress, aurelia_framework_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    var LoadingIndicator = (function () {
+        function LoadingIndicator() {
+            this.loading = false;
+        }
+        LoadingIndicator.prototype.loadingChanged = function (newValue) {
+            if (newValue) {
+                nprogress.start();
+            }
+            else {
+                nprogress.done();
+            }
+        };
+        return LoadingIndicator;
+    }());
+    __decorate([
+        aurelia_framework_1.bindable,
+        __metadata("design:type", Object)
+    ], LoadingIndicator.prototype, "loading", void 0);
+    LoadingIndicator = __decorate([
+        aurelia_framework_1.noView(['nprogress/nprogress.css'])
+    ], LoadingIndicator);
+    exports.LoadingIndicator = LoadingIndicator;
+});
+
+define('resources/value-converters/converter',["require", "exports", "moment"], function (require, exports, moment) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    var DateFormatValueConverter = (function () {
+        function DateFormatValueConverter() {
+        }
+        DateFormatValueConverter.prototype.toView = function (value) {
+            return moment(value).format('M/D/YYYY');
+        };
+        return DateFormatValueConverter;
+    }());
+    exports.DateFormatValueConverter = DateFormatValueConverter;
 });
 
 define('aurelia-validation/get-target-dom-element',["require", "exports", "aurelia-pal"], function (require, exports, aurelia_pal_1) {
@@ -2042,9 +2031,9 @@ define('aurelia-validation/implementation/validation-rules',["require", "exports
     exports.ValidationRules = ValidationRules;
 });
 
-define('text!app.html', ['module'], function(module) { module.exports = "<template><require from=\"VisitorList/list\"></require><require from=\"bootstrap/css/bootstrap.css\"></require><nav class=\"navbar navbar-inverse\"><div class=\"container-fluid\"><div class=\"navbar-header\"><a class=\"navbar-brand\" href=\"#\">WebSiteName</a></div><ul class=\"nav navbar-nav\"><li repeat.for=\"r of router.navigation\"><a href.bind=\"r.href\">${r.title}</a></li></ul></div></nav><compose class=\"col-md-6\" view-model=\"VisitorList/list\"></compose><router-view class=\"col-md-6\"></router-view></template>"; });
-define('text!ns.html', ['module'], function(module) { module.exports = "<template></template>"; });
-define('text!VisitorList/list.html', ['module'], function(module) { module.exports = "<template><a route-href=\"route:create\" class=\"btn btn-danger\">CREATE</a><table class=\"table\"><tr><th>FIRSTNAME</th><th>LASTNAME</th><th>DATE</th><th>TIME</th><th></th><th></th></tr><tr repeat.for=\"m of visitorlist\"><td>${m.firstname}</td><td>${m.lastname}</td><td>${m.date}</td><td>${m.time}</td><td><a route-href=\"route:edit;params.bind:{id:m.id}\" class=\"btn btn-primary\">EDIT</a></td><td><button click.trigger=\"delete(m.id)\" class=\"btn btn-primary\">DELETE</button></td></tr></table></template>"; });
-define('text!VisitorDetails/Createdetail.html', ['module'], function(module) { module.exports = "<template><div class=\"panel panel-default\" if.bind=\"a\"><div class=\"panel-heading\">Create</div><div class=\"panel-body\"><form id=\"hel\" submit.delegate=\"save()\"><div class=\"form-group\" validation-errors.bind=\"firstNameErrors\" class.bind=\"firstNameErrors.length ? 'has-error' : ''\"><label for=\"firstName\">First Name</label><input type=\"text\" class=\"form-control\" id=\"firstName\" placeholder=\"First Name\" autocomplete=\"off\" value.bind=\"vlist.firstname & validate\"> <span class=\"help-block\" repeat.for=\"errorInfo of firstNameErrors\">${errorInfo.error.message}</span></div><div class=\"form-group\" validation-errors.bind=\"lastNameErrors\" class.bind=\"lastNameErrors.length ? 'has-error' : ''\"><label for=\"lastName\">Last Name</label><input type=\"text\" class=\"form-control\" id=\"lastName\" placeholder=\"Last Name\" autocomplete=\"off\" value.bind=\"vlist.lastname & validate\"> <span class=\"help-block\" repeat.for=\"errorInfo of lastNameErrors\">${errorInfo.error.message}</span></div><div class=\"form-group\" validation-errors.bind=\"dateErrors\" class.bind=\"date.length ? 'has-error' : ''\"><label for=\"date\">Date</label><input type=\"text\" class=\"form-control\" id=\"date\" placeholder=\"Date\" autocomplete=\"off\" value.bind=\"vlist.date & validate\"> <span class=\"help-block\" repeat.for=\"errorInfo of dateErrors\">${errorInfo.error.message}</span></div><div class=\"form-group\" validation-errors.bind=\"TimeErrors\" class.bind=\"TimeErrors.length ? 'has-error' : ''\"><label for=\"Time\">Time</label><input type=\"text\" class=\"form-control\" id=\"Time\" placeholder=\"Time\" autocomplete=\"off\" value.bind=\"vlist.time & validate\"> <span class=\"help-block\" repeat.for=\"errorInfo of TimeErrors\">${errorInfo.error.message}</span></div><button type=\"submit\" class=\"btn btn-danger\">Save</button></form></div></div></template>"; });
-define('text!VisitorDetails/Editdetail.html', ['module'], function(module) { module.exports = "<template><div class=\"panel panel-default\" if.bind=\"a\"><div class=\"panel-heading\">Edit</div><div class=\"panel-body\"><form id=\"hel\" submit.delegate=\"validateMe()\"><div class=\"form-group\" validation-errors.bind=\"firstNameErrors\" class.bind=\"firstNameErrors.length ? 'has-error' : ''\"><label for=\"firstName\">First Name</label><input type=\"text\" class=\"form-control\" id=\"firstName\" placeholder=\"First Name\" autocomplete=\"off\" value.bind=\"vlist.firstname & validate\"> <span class=\"help-block\" repeat.for=\"errorInfo of firstNameErrors\">${errorInfo.error.message}</span></div><div class=\"form-group\" validation-errors.bind=\"lastNameErrors\" class.bind=\"lastNameErrors.length ? 'has-error' : ''\"><label for=\"lastName\">Last Name</label><input type=\"text\" class=\"form-control\" id=\"lastName\" placeholder=\"Last Name\" autocomplete=\"off\" value.bind=\"vlist.lastname & validate\"> <span class=\"help-block\" repeat.for=\"errorInfo of lastNameErrors\">${errorInfo.error.message}</span></div><div class=\"form-group\" validation-errors.bind=\"dateErrors\" class.bind=\"date.length ? 'has-error' : ''\"><label for=\"date\">Date</label><input type=\"text\" class=\"form-control\" id=\"date\" placeholder=\"Date\" autocomplete=\"off\" value.bind=\"vlist.date & validate\"> <span class=\"help-block\" repeat.for=\"errorInfo of dateErrors\">${errorInfo.error.message}</span></div><div class=\"form-group\" validation-errors.bind=\"TimeErrors\" class.bind=\"TimeErrors.length ? 'has-error' : ''\"><label for=\"Time\">Time</label><input type=\"text\" class=\"form-control\" id=\"Time\" placeholder=\"Time\" autocomplete=\"off\" value.bind=\"vlist.time & validate\"> <span class=\"help-block\" repeat.for=\"errorInfo of TimeErrors\">${errorInfo.error.message}</span></div><button type=\"submit\" class=\"btn btn-danger\">Save</button></form></div></div></template>"; });
+define('text!app.html', ['module'], function(module) { module.exports = "<template><require from=\"resources/elements/navbar.html\"></require><navbar router.bind=\"router\"></navbar><loading-indicator loading.bind=\"router.isNavigating \"></loading-indicator><router-view></router-view></template>"; });
+define('text!Others/other.html', ['module'], function(module) { module.exports = "<template>HI WELCOME</template>"; });
+define('text!VisitorDetails/Updatedetail.html', ['module'], function(module) { module.exports = "<template><require from=\"jquery-ui/themes/base/datepicker.css\"></require><require from=\"jquery-ui/themes/base/theme.css\"></require><require from=\"../resources/attributes/datepicker\"></require><div class=\"panel panel-default\" if.bind=\"formenabled\"><div class=\"panel-heading\">Edit/Create</div><div class=\"panel-body\"><form submit.delegate=\"validateMe()\"><div class=\"form-group\" validation-errors.bind=\"firstNameErrors\" class.bind=\"firstNameErrors.length ? 'has-error' : ''\"><label for=\"firstName\">First Name</label><input type=\"text\" class=\"form-control\" id=\"firstName\" placeholder=\"First Name\" autocomplete=\"off\" value.bind=\"vlist.firstname & validate\"> <span class=\"help-block\" repeat.for=\"errorInfo of firstNameErrors\">${errorInfo.error.message}</span></div><div class=\"form-group\" validation-errors.bind=\"lastNameErrors\" class.bind=\"lastNameErrors.length ? 'has-error' : ''\"><label for=\"lastName\">Last Name</label><input type=\"text\" class=\"form-control\" id=\"lastName\" placeholder=\"Last Name\" autocomplete=\"off\" value.bind=\"vlist.lastname & validate\"> <span class=\"help-block\" repeat.for=\"errorInfo of lastNameErrors\">${errorInfo.error.message}</span></div><div class=\"form-group\" validation-errors.bind=\"dateErrors\" class.bind=\"date.length ? 'has-error' : ''\"><label for=\"date\">Date</label><input datepicker type=\"text\" class=\"form-control\" id=\"date\" placeholder=\"Date\" autocomplete=\"off\" value.bind=\"vlist.date & validate\"> <span class=\"help-block\" repeat.for=\"errorInfo of dateErrors\">${errorInfo.error.message}</span></div><div class=\"form-group\" validation-errors.bind=\"TimeErrors\" class.bind=\"TimeErrors.length ? 'has-error' : ''\"><label for=\"Time\">Time</label><input type=\"text\" class=\"form-control\" id=\"Time\" placeholder=\"Time\" autocomplete=\"off\" value.bind=\"vlist.time & validate\"> <span class=\"help-block\" repeat.for=\"errorInfo of TimeErrors\">${errorInfo.error.message}</span></div><button type=\"submit\" class=\"btn btn-danger\">Save</button></form></div></div></template>"; });
+define('text!VisitorList/list.html', ['module'], function(module) { module.exports = "<template><require from=\"../VisitorDetails/Updatedetail\"></require><div class=\"container\"><div class=\"row\"><div class=\"col-md-6\"><button click.trigger=\"create()\" class=\"btn btn-primary\">CREATE</button><table class=\"table\"><tr><th>FIRSTNAME</th><th>LASTNAME</th><th>DATE</th><th>TIME</th><th></th><th></th></tr><tr repeat.for=\"m of visitorlist\"><td>${m.firstname}</td><td>${m.lastname}</td><td>${m.date}</td><td>${m.time}</td><td><button click.trigger=\"edit(m.id)\" class=\"btn btn-primary\">EDIT</button></td><td><button click.trigger=\"delete(m.id)\" class=\"btn btn-primary\">DELETE</button></td></tr></table></div><div class=\"col-md-6\" if.bind=\"isedit || iscreate\"><detail vlist.bind=\"visitor\" formenabled.bind=\"FormEnabled\"></detail></div></div></div></template>"; });
+define('text!resources/elements/navbar.html', ['module'], function(module) { module.exports = "<template bindable=\"router\"><require from=\"bootstrap/css/bootstrap.css\"></require><nav role=\"navigation\" class=\"navbar navbar-inverse\"><div class=\"navbar-header\"><button type=\"button\" data-target=\"#navbarCollapse\" data-toggle=\"collapse\" class=\"navbar-toggle\"><span class=\"sr-only\">Toggle navigation</span> <span class=\"icon-bar\"></span> <span class=\"icon-bar\"></span> <span class=\"icon-bar\"></span></button></div><div id=\"navbarCollapse\" class=\"collapse navbar-collapse\"><ul class=\"nav navbar-nav\"><li repeat.for=\"route of router.navigation\"><a data-toggle=\"collapse\" data-target=\"#navbarCollapse\" href.bind=\"route.href\">${route.title}</a></li></ul></div></nav></template>"; });
 //# sourceMappingURL=app-bundle.js.map

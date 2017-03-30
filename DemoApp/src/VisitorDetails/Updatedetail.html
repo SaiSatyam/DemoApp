@@ -1,90 +1,91 @@
 <template>
+
+<require from="jquery-ui/themes/base/datepicker.css"></require>
+<require from="jquery-ui/themes/base/theme.css"></require>
+<require from="../resources/attributes/datepicker"></require> 
  
- 
-	<div class="panel panel-default" if.bind="a">
-  <div class="panel-heading">Edit</div>
+	<div class="panel panel-default" if.bind="formenabled">
+
+  <div class="panel-heading">Edit/Create</div>
+
   <div class="panel-body">
-  	
- <form id="hel" submit.delegate="validateMe()" >
+  	<form submit.delegate="validateMe()" >
+
+  
 
   <div class="form-group" validation-errors.bind="firstNameErrors"
        class.bind="firstNameErrors.length ? 'has-error' : ''">
     <label for="firstName">First Name</label>
+
     <input type="text" class="form-control" id="firstName" 
            placeholder="First Name" autocomplete="off"
            value.bind="vlist.firstname & validate">
+
     <span class="help-block" repeat.for="errorInfo of firstNameErrors">
       ${errorInfo.error.message}
     </span>
+
   </div>
+
+  
 
    <div class="form-group" validation-errors.bind="lastNameErrors"
        class.bind="lastNameErrors.length ? 'has-error' : ''">
+
     <label for="lastName">Last Name</label>
+
     <input type="text" class="form-control" id="lastName" 
            placeholder="Last Name" autocomplete="off"
            value.bind="vlist.lastname & validate">
+
     <span class="help-block" repeat.for="errorInfo of lastNameErrors">
       ${errorInfo.error.message}
     </span>
+
   </div>
+
+ 
 
  <div class="form-group" validation-errors.bind="dateErrors"
        class.bind="date.length ? 'has-error' : ''">
+
     <label for="date">Date</label>
-    <input type="text" class="form-control" id="date" 
+
+    <input datepicker type="text" class="form-control" id="date" 
            placeholder="Date"  autocomplete="off"
            value.bind="vlist.date & validate">
+
     <span class="help-block" repeat.for="errorInfo of dateErrors">
       ${errorInfo.error.message}
     </span>
+
   </div>
+
+   
 
    <div class="form-group" validation-errors.bind="TimeErrors"
        class.bind="TimeErrors.length ? 'has-error' : ''">
+
     <label for="Time">Time</label>
-    <input type="text" class="form-control" id="Time" 
+
+    <input  type="text" class="form-control" id="Time" 
            placeholder="Time" autocomplete="off"
            value.bind="vlist.time & validate">
+
     <span class="help-block" repeat.for="errorInfo of TimeErrors">
       ${errorInfo.error.message}
     </span>
-  </div>
-<!-- 
-  <div class="form-group">
-    <label for="fn">FirstName</label>
-    <input type="firstname" class="form-control" id="firstname" value.bind="vlist.firstname ">
-  
-  </div> -->
 
- <!--  
-  <div class="form-group">
-    <label for="ln">LastName</label>
-    <input type="lastname" class="form-control" id="lastname" 
-     value.bind="vlist.lastname ">
-  </div>
-  <div class="form-group">
-    <label for="date">Date</label>
-    <input   type="input-group date" class="form-control"  id="date"  value.bind="vlist.date  ">
-    
-   
-  </div>
-  <div class="form-group">
-    <label for="time">Time</label>
-    <input type="time" class="form-control" id="time"  value.bind="vlist.time ">
   </div>
 
-  <button type="submit" class="btn btn-danger" click.trigger="save()" disabled.bind="!canSave">Save</button> -->
+
 
   <button type="submit" class="btn btn-danger" >Save</button> 
 </form>
-<!-- <ul if.bind="controller.errors">
-    <li repeat.for="error of controller.errors">
-      ${error.message}
-    </li>
-  </ul> -->
+
 
   </div>
+
 </div>
 
 

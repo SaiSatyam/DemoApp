@@ -127,6 +127,34 @@
             "main": "aurelia-validation"
           },
 
+"jquery",
+  {
+    "name": "jquery-ui",
+    "path": "../node_modules/jquery-ui/",
+    "main": "ui/widgets/datepicker",
+    "dep": ["jquery"],
+    "exports": "$",
+    "resources": [
+        "themes/base/datepicker.css",
+        "themes/base/theme.css"
+    ]
+  },
+
+{
+      "name": "moment",
+      "path": "../node_modules/moment",
+      "main": "moment"
+    },
+
+ {
+    "name": "nprogress",
+    "path": "../node_modules/nprogress",
+    "main": "nprogress",
+    "resources": [
+      "nprogress.css"
+    ]
+  },
+
            {
             "name": "aurelia-http-client",
             "path": "../node_modules/aurelia-http-client/dist/amd",

@@ -8,10 +8,14 @@ import environment from './environment';
   }
 });
 
-export function configure(aurelia: Aurelia) {
+
+//Initialize aurelia
+export function configure(aurelia: Aurelia) 
+{
   aurelia.use
     .standardConfiguration()
-    .feature('resources').plugin('aurelia-http-client').plugin('aurelia-validation');
+    .feature('resources').plugin('aurelia-http-client').plugin('aurelia-validation')
+    .plugin('jquery-ui').plugin('moment').plugin('nprogress'); //3rd party plugins
 
   if (environment.debug) {
     aurelia.use.developmentLogging();
@@ -22,5 +26,5 @@ export function configure(aurelia: Aurelia) {
   }
 
   aurelia.start().then(() =>
-    aurelia.setRoot());
+    aurelia.setRoot());           //Triggers default root file
 }
